@@ -98,7 +98,9 @@ def _is_empty_row(row_dict: Dict[str, Any], dto_fields: List[str]) -> bool:
     for field in dto_fields:
         value = row_dict.get(field, "")
         if isinstance(value, list):
-            continue  # list(files 등)는 텍스트 빈값 판단에서 제외
+            if value:  # 비어있지 않은 배열이면 non-empty
+                return False
+            continue
         if str(value).strip():
             return False
     return True
