@@ -1,6 +1,6 @@
 import yaml
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 @dataclass
@@ -21,6 +21,7 @@ class ApiConfig:
     endpoint: str
     timeout: int
     stop_on_error: bool
+    ssl_verify: Union[bool, str]  # True / False / CA 인증서 파일 경로
 
 
 @dataclass
@@ -49,6 +50,7 @@ def load_config(config_path: str = "config/config.yaml") -> AppConfig:
         endpoint=api_raw["endpoint"],
         timeout=api_raw.get("timeout", 30),
         stop_on_error=api_raw.get("stop_on_error", False),
+        ssl_verify=api_raw.get("ssl_verify", True),
     )
 
     return AppConfig(excel=excel, api=api)

@@ -14,13 +14,18 @@ def send_rows(rows: List[Dict[str, Any]], api_config: ApiConfig) -> None:
     url = f"{api_config.base_url.rstrip('/')}{api_config.endpoint}"
     logger.info(f"{len(rows)}개 행을 {url} 에 전송합니다.")
 
+    if api_config.ssl_verify is False:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        logger.warning("SSL 인증서 검증이 비활성화되어 있습니다.")
+
     success = 0
     errors = 0
 
     for i, row in enumerate(rows, start=1):
         logger.info(f"[{i}/{len(rows)}] 전송 중...")
         try:
-            _send_single_row(url, row, api_config.timeout)
+            _send_single_row(url, row, api_config.timeout, api_config.ssl_verify)
             success += 1
             logger.info(f"[{i}/{len(rows)}] 성공")
         except requests.HTTPError as e:
@@ -40,7 +45,7 @@ def send_rows(rows: List[Dict[str, Any]], api_config: ApiConfig) -> None:
     logger.info(f"전송 완료 | 성공: {success} / 실패: {errors} / 전체: {len(rows)}")
 
 
-def _send_single_row(url: str, row: Dict[str, Any], timeout: int) -> None:
+def _send_single_row(url: str, row: Dict[str, Any], timeout: int, ssl_verify) -> None:
     """단일 행을 multipart/form-data로 전송한다."""
     # 텍스트 필드
     data: Dict[str, str] = {k: v for k, v in row.items() if k != "files"}
@@ -57,6 +62,7 @@ def _send_single_row(url: str, row: Dict[str, Any], timeout: int) -> None:
         data=data,
         files=multipart_files if multipart_files else None,
         timeout=timeout,
+        verify=ssl_verify,
     )
     response.raise_for_status()
 

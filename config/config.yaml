@@ -22,3 +22,5 @@ api:
   endpoint: "/api/sample"
   timeout: 30        # 초 단위
   stop_on_error: false  # true: 첫 번째 오류 시 중단, false: 계속 진행
+  ssl_verify: true   # false: SSL 검증 비활성화 (self-signed 인증서 환경)
+                     # 또는 CA 인증서 파일 경로 지정: "/path/to/ca-bundle.crt"
