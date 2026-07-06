@@ -1,0 +1,24 @@
+excel:
+  # 시트 이름 (null이면 첫 번째 시트 사용)
+  sheet_name: null
+
+  # Excel 컬럼명 -> DTO 필드명 매핑
+  text_columns:
+    - excel_name: "Device ID"
+      dto_field: "deviceId"
+    - excel_name: "WF Process"
+      dto_field: "wfProcess"
+    - excel_name: "Mask Process"
+      dto_field: "maskProcess"
+    - excel_name: "P Layer ID"
+      dto_field: "pLayerId"
+    - excel_name: "Layer Name"
+      dto_field: "layerName"
+    - excel_name: "Mask Type"
+      dto_field: "maskType"
+
+api:
+  base_url: "http://localhost:8080"
+  endpoint: "/api/sample"
+  timeout: 30        # 초 단위
+  stop_on_error: false  # true: 첫 번째 오류 시 중단, false: 계속 진행
