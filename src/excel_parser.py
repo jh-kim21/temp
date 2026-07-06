@@ -3,13 +3,17 @@ from typing import Any, Dict, List, Optional
 
 from openpyxl import load_workbook
 
-from .config_loader import AppConfig
+from .config_loader import ApiConfig, ExcelConfig
 from .image_extractor import extract_images_by_row
 
 logger = logging.getLogger(__name__)
 
 
-def parse_excel(excel_path: str, config: AppConfig) -> List[Dict[str, Any]]:
+def parse_excel(
+    excel_path: str,
+    excel_config: ExcelConfig,
+    api_config: ApiConfig,  # 현재 미사용, 확장을 위해 유지
+) -> List[Dict[str, Any]]:
     """
     Excel 파일을 파싱하여 API 전송용 행 데이터 목록을 반환한다.
 
@@ -24,8 +28,8 @@ def parse_excel(excel_path: str, config: AppConfig) -> List[Dict[str, Any]]:
           ...
         ]
     """
-    sheet_name: Optional[str] = config.excel.sheet_name
-    text_columns = config.excel.text_columns
+    sheet_name: Optional[str] = excel_config.sheet_name
+    text_columns = excel_config.text_columns
 
     # 1) 이미지 추출 (row 번호 기준 매핑)
     logger.info("Excel 이미지 추출 시작...")
@@ -89,4 +93,10 @@ def parse_excel(excel_path: str, config: AppConfig) -> List[Dict[str, Any]]:
 
 
 def _is_empty_row(row_dict: Dict[str, Any], dto_fields: List[str]) -> bool:
-    return all(not str(row_dict.get(f, "")).strip() for f in dto_fields)
+    if not dto_fields:
+        return False
+    for field in dto_fields:
+        value = row_dict.get(field, "")
+        if str(value).strip():
+            return False
+    return True

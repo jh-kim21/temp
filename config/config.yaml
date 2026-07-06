@@ -1,34 +1,46 @@
-excel:
-  # 시트 이름 (null이면 첫 번째 시트 사용)
-  sheet_name: null
-
-  # Excel 컬럼명 -> DTO 필드명 매핑
-  text_columns:
-    - excel_name: "Device ID"
-      dto_field: "deviceId"
-    - excel_name: "WF Process"
-      dto_field: "wfProcess"
-    - excel_name: "Mask Process"
-      dto_field: "maskProcess"
-    - excel_name: "P Layer ID"
-      dto_field: "pLayerId"
-    - excel_name: "Layer Name"
-      dto_field: "layerName"
-    - excel_name: "Mask Type"
-      dto_field: "maskType"
-
+# 공통 API 설정 — 모든 프로파일에서 공유
 api:
   base_url: "http://localhost:8080"
-  endpoint: "/api/sample"
-  timeout: 30        # 초 단위
-  stop_on_error: false  # true: 첫 번째 오류 시 중단, false: 계속 진행
-  ssl_verify: true   # false: SSL 검증 비활성화 (self-signed 인증서 환경)
-                     # 또는 CA 인증서 파일 경로 지정: "/path/to/ca-bundle.crt"
+  timeout: 30
+  stop_on_error: false
+  ssl_verify: true   # false: SSL 검증 비활성화, 또는 CA 인증서 경로 지정
 
-  # JWT 인증 설정
+  # JWT 인증 설정 (불필요하면 auth 블록 전체 삭제)
   auth:
-    login_endpoint: "/api/auth/login"  # 로그인 API 경로
+    login_endpoint: "/api/auth/login"
     username: "your_username"
     password: "your_password"
-    token_json_path: "token"           # 응답 JSON에서 토큰 키 (예: {"token": "..."})
-                                       # 중첩 경로는 점(.)으로 구분: "data.accessToken"
+    token_json_path: "token"   # 중첩 경로는 점으로 구분: "data.accessToken"
+
+
+# 프로파일 — Excel 파일 종류마다 하나씩 정의
+# 실행: python main.py <excel_file> --profile <name>
+profiles:
+
+  - name: "sample"
+    endpoint: "/api/sample"
+    excel:
+      sheet_name: null   # null = 첫 번째 시트
+      text_columns:
+        - excel_name: "Device ID"
+          dto_field: "deviceId"
+        - excel_name: "WF Process"
+          dto_field: "wfProcess"
+        - excel_name: "Mask Process"
+          dto_field: "maskProcess"
+        - excel_name: "P Layer ID"
+          dto_field: "pLayerId"
+        - excel_name: "Layer Name"
+          dto_field: "layerName"
+        - excel_name: "Mask Type"
+          dto_field: "maskType"
+
+  - name: "other"
+    endpoint: "/api/other"
+    excel:
+      sheet_name: null
+      text_columns:
+        - excel_name: "컬럼A"
+          dto_field: "fieldA"
+        - excel_name: "컬럼B"
+          dto_field: "fieldB"
