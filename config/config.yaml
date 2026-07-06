@@ -24,3 +24,11 @@ api:
   stop_on_error: false  # true: 첫 번째 오류 시 중단, false: 계속 진행
   ssl_verify: true   # false: SSL 검증 비활성화 (self-signed 인증서 환경)
                      # 또는 CA 인증서 파일 경로 지정: "/path/to/ca-bundle.crt"
+
+  # JWT 인증 설정
+  auth:
+    login_endpoint: "/api/auth/login"  # 로그인 API 경로
+    username: "your_username"
+    password: "your_password"
+    token_json_path: "token"           # 응답 JSON에서 토큰 키 (예: {"token": "..."})
+                                       # 중첩 경로는 점(.)으로 구분: "data.accessToken"

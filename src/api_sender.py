@@ -1,9 +1,9 @@
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from .config_loader import ApiConfig
+from .config_loader import ApiConfig, AuthConfig
 from .image_extractor import detect_mime_type
 
 logger = logging.getLogger(__name__)
@@ -19,13 +19,21 @@ def send_rows(rows: List[Dict[str, Any]], api_config: ApiConfig) -> None:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         logger.warning("SSL 인증서 검증이 비활성화되어 있습니다.")
 
+    # JWT 로그인 (설정된 경우)
+    token: Optional[str] = None
+    if api_config.auth:
+        token = _login(api_config)
+        logger.info("JWT 토큰 획득 완료")
+
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
     success = 0
     errors = 0
 
     for i, row in enumerate(rows, start=1):
         logger.info(f"[{i}/{len(rows)}] 전송 중...")
         try:
-            _send_single_row(url, row, api_config.timeout, api_config.ssl_verify)
+            _send_single_row(url, row, api_config.timeout, api_config.ssl_verify, headers)
             success += 1
             logger.info(f"[{i}/{len(rows)}] 성공")
         except requests.HTTPError as e:
@@ -45,30 +53,60 @@ def send_rows(rows: List[Dict[str, Any]], api_config: ApiConfig) -> None:
     logger.info(f"전송 완료 | 성공: {success} / 실패: {errors} / 전체: {len(rows)}")
 
 
-def _send_single_row(url: str, row: Dict[str, Any], timeout: int, ssl_verify) -> None:
+def _login(api_config: ApiConfig) -> str:
+    """로그인 API를 호출하여 JWT 토큰을 반환한다."""
+    auth = api_config.auth
+    login_url = f"{api_config.base_url.rstrip('/')}{auth.login_endpoint}"
+    logger.info(f"로그인 요청: {login_url}")
+
+    response = requests.post(
+        login_url,
+        json={"username": auth.username, "password": auth.password},
+        timeout=api_config.timeout,
+        verify=api_config.ssl_verify,
+    )
+    response.raise_for_status()
+
+    return _extract_token(response.json(), auth.token_json_path)
+
+
+def _extract_token(data: dict, json_path: str) -> str:
+    """점(.) 구분 경로로 중첩 JSON에서 토큰 값을 추출한다.
+    예) token_json_path="data.accessToken" → data["data"]["accessToken"]
+    """
+    value = data
+    for key in json_path.split("."):
+        if not isinstance(value, dict) or key not in value:
+            raise KeyError(
+                f"로그인 응답에서 토큰 경로 '{json_path}'를 찾을 수 없습니다. "
+                f"응답: {data}"
+            )
+        value = value[key]
+    return str(value)
+
+
+def _send_single_row(
+    url: str,
+    row: Dict[str, Any],
+    timeout: int,
+    ssl_verify,
+    headers: Dict[str, str],
+) -> None:
     """단일 행을 multipart/form-data로 전송한다."""
-    # 텍스트 필드
     data: Dict[str, str] = {k: v for k, v in row.items() if k != "files"}
 
-    # 이미지 파일 — 동일한 필드명 'files'로 복수 파일 전송
     image_entries: List[Tuple[str, bytes]] = row.get("files", [])
     multipart_files = [
-        ("files", (_rename_for_row(filename, i), img_bytes, detect_mime_type(img_bytes)))
-        for i, (filename, img_bytes) in enumerate(image_entries)
+        ("files", (filename, img_bytes, detect_mime_type(img_bytes)))
+        for filename, img_bytes in image_entries
     ]
 
     response = requests.post(
         url,
         data=data,
         files=multipart_files if multipart_files else None,
+        headers=headers,
         timeout=timeout,
         verify=ssl_verify,
     )
     response.raise_for_status()
-
-
-def _rename_for_row(original_filename: str, index: int) -> str:
-    """같은 이름의 이미지가 여러 행에 걸쳐 존재할 경우를 위해 인덱스를 부여한다."""
-    # Excel 내부 미디어 파일명(예: image1.png)이 행마다 달라지지 않으므로
-    # 원본 파일명을 그대로 사용한다 (Spring Boot가 파일명을 기준으로 처리할 경우 대비).
-    return original_filename
