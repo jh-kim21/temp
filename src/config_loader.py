@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple, Union
 class ColumnMapping:
     excel_name: str
     dto_field: str
+    col_type: str = "string"  # "string" | "json_array"
 
 
 @dataclass
@@ -103,7 +104,11 @@ def load_config(config_path: str = "config/config.yaml") -> AppConfig:
 def _parse_profile(raw: dict) -> ProfileConfig:
     excel_raw = raw["excel"]
     text_columns = [
-        ColumnMapping(excel_name=col["excel_name"], dto_field=col["dto_field"])
+        ColumnMapping(
+            excel_name=col["excel_name"],
+            dto_field=col["dto_field"],
+            col_type=col.get("type", "string"),
+        )
         for col in excel_raw.get("text_columns", [])
     ]
     excel = ExcelConfig(

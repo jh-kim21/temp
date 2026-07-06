@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -72,9 +73,9 @@ def parse_excel(
             col_idx = header_map.get(col.excel_name)
             if col_idx is not None and col_idx < len(row_values):
                 raw = row_values[col_idx]
-                row_dict[col.dto_field] = str(raw) if raw is not None else ""
+                row_dict[col.dto_field] = _convert_value(raw, col.col_type)
             else:
-                row_dict[col.dto_field] = ""
+                row_dict[col.dto_field] = "" if col.col_type == "string" else "[]"
 
         row_dict["files"] = images_by_row.get(excel_row_num, [])
 
@@ -90,6 +91,16 @@ def parse_excel(
 
     logger.info(f"총 {len(parsed)}개 행 파싱 완료")
     return parsed
+
+
+def _convert_value(raw: Any, col_type: str) -> str:
+    if col_type == "json_array":
+        if raw is None or str(raw).strip() == "":
+            return "[]"
+        parts = [v.strip() for v in str(raw).split("/") if v.strip()]
+        return json.dumps(parts, ensure_ascii=False)
+    # string (default)
+    return str(raw) if raw is not None else ""
 
 
 def _is_empty_row(row_dict: Dict[str, Any], dto_fields: List[str]) -> bool:
